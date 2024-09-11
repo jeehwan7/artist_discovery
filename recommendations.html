@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Recommendations
+{% endblock %}
+
+{% block main %}
+
+   {% for name in names %}
+        {% if names.index(name) == 0 %}
+            <p>Here are some recommendations... enjoy!</p>
+        {% endif %}
+            <p>{{ names.index(name) + 1 }}. {{ name }}</p>
+    {% else %}
+        <p>Sorry! We couldn't find any recommendations.</p>
+        <p>We have a popularity threshold, so try listening to less popular artists!</p>
+    {% endfor %}
+
+{% endblock %}

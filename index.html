@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Welcome
+{% endblock %}
+
+{% block main %}
+    <p>Welcome to Artist Discovery!</p>
+    <p>Click the button below to get some fresh artist recommendations.</p>
+    <div class="pt-3">
+        <form action="/" method="post">
+            <button class="btn btn-outline-dark rounded-pill" name="recommend">Get Recommendations</button>
+        </form>
+    </div>
+    
+{% endblock %}
