@@ -1,1 +1,1 @@
-code for the artist recommendation website I made for CS 50
+website that recommends you artists you are likely not familiar with based on your Spotify data
