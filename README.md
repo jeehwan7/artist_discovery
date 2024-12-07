@@ -1,1 +1,1 @@
-code that I used to the produce the artist recommendation website for CS 50
+code for the artist recommendation website I made for CS 50
