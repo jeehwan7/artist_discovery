@@ -1,2 +1,2 @@
 # Artist Discovery
-Website that recommends lesser-known artists to users based on their Spotify data
+Website that recommends lesser-known artists based on your Spotify data
