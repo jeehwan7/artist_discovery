@@ -62,59 +62,60 @@ def recommend():
         'Authorization': f'Bearer {token}'
     }
 
-    # list of ids of artists from saved albums
-    response = requests.get(f'{BASE_URL}/me/albums', headers=headers)
+    # grab ids of saved albums' artists
     album_artists = []
+    response = requests.get(f'{BASE_URL}/me/albums', headers=headers)  
     try:
         response = response.json()
         for album in response["items"]:
             album_artists.append(album["album"]["artists"][0]["id"])
-    except json.decoder.JSONDecodeError as e:
-        print(f"JSON decoding error: {e}")
+    except json.decoder.JSONDecodeError as error:
+        print(f"JSON decoding error: {error}")
 
-    # list of ids of followed artists
-    response = requests.get(f'{BASE_URL}/me/following?type=artist', headers=headers)
-    followed_artists = []
+    # grab ids of following artists
+    following_artists = []
+    response = requests.get(f'{BASE_URL}/me/following?type=artist', headers=headers)   
     try:
         response = response.json()
         for artist in response["artists"]["items"]:
-            followed_artists.append(artist["id"])
+            following_artists.append(artist["id"])
     except json.decoder.JSONDecodeError as e:
         print(f"JSON decoding error: {e}")
 
-    # list of ids of top artists (medium term)
-    response = requests.get(f'{BASE_URL}/me/top/artists?time_range=medium_term&limit=20', headers=headers)
+    # grab ids of top artists from listening history (medium term)
     top_artists = []
+    response = requests.get(f'{BASE_URL}/me/top/artists?time_range=medium_term&limit=20', headers=headers)
     try:
         response = response.json()
         for artist in response["items"]:
             top_artists.append(artist["id"])
-    except json.decoder.JSONDecodeError as e:
-        print(f"JSON decoding error: {e}")
+    except json.decoder.JSONDecodeError as error:
+        print(f"JSON decoding error: {error}")
 
-    # list of ids of related artists from top artists
-    rel_top_artists = []
+    # grab ids of artists related to top artists
+    # ERROR PRODUCED HERE BECAUSE SPOTIFY WEB API DISCONTINUED RELATED ARTISTS ENDPOINT
+    # https://developer.spotify.com/blog/2024-11-27-changes-to-the-web-api
+    potential_recs = []
     for id in top_artists:
-        response = requests.get(f'{BASE_URL}/artists/{id}/related-artists', headers=headers)
+        response = requests.get(f'{BASE_URL}/artists/{id}/related-artists', headers=headers)      
         try:
             response = response.json()
             for artist in response["artists"]:
-                rel_top_artists.append(artist["id"])
-        except json.decoder.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
+                potential_recs.append(artist["id"])
+        except json.decoder.JSONDecodeError as error:
+            print(f"Error decoding JSON: {error}")
 
-    # list of ids of "already familiar artists"
-    alr_familiar_artists = list(set(album_artists + followed_artists + top_artists))
+    # create list of ids of familiar artists
+    familiar_artists = list(set(album_artists + following_artists + top_artists))
 
-    # list of potential recommendations
-    # excludes "already familiar artists"
-    potential_recs = [id for id in rel_top_artists if id not in alr_familiar_artists]
+    # create list of potential recommendations that excludes familiar artists
+    potential_recs = [id for id in potential_recs if id not in familiar_artists]
 
-    # dictionary of popularities of potential recommendations (remove artists above threshold)
-    threshold = 40
-
+    # create dictionary of popularities of potential recommendations
+    # remove artists from potential recommendations whose popularities exceed threshold
     popularities = {}
     removals = []
+    threshold = 40
     for id in list(set(potential_recs)):
         response = requests.get(f'{BASE_URL}/artists/{id}', headers=headers)
         response = response.json()
@@ -124,29 +125,30 @@ def recommend():
         else:
             popularities[id] = popularity
 
-    revised_potential_recs = [id for id in potential_recs if id not in removals]
+    potential_recs = [id for id in potential_recs if id not in removals]
 
-    # dictionary of number of appearnces in potential_recs
-    appearances = Counter(revised_potential_recs)
+    # create dictionary of number of appearnces in potential recommendations
+    num_appearances = Counter(potential_recs)
 
     # weightings
-    m = 10 # for appearance
+    m = 10 # for number of appearances
     n = -1 # for popularity
 
-    # the "algorithm"
-    rec_likelihoods = {}
-    for id in list(set(revised_potential_recs)):
-        rec_likelihoods[id] = m * appearances[id] + n * popularities[id]
+    # calculate likelihoods
+    likelihoods = {}
+    for id in list(set(potential_recs)):
+        likelihoods[id] = m * num_appearances[id] + n * popularities[id]
 
-    # sort in descending order
-    recommendations = sorted(rec_likelihoods, key=rec_likelihoods.get, reverse=True)
+    # sort recommendations in descending order of likelihoods
+    recs = sorted(likelihoods, key=likelihoods.get, reverse=True)
 
     # max number of recommendations: 10
-    if len(recommendations) > 10:
-        recommendations = recommendations[:10]
+    if len(recs) > 10:
+        recs = recs[:10]
 
+    # grab recommendations' names
     names = []
-    for id in recommendations:
+    for id in recs:
         response = requests.get(f'{BASE_URL}/artists/{id}', headers=headers)
         response = response.json()
         names.append(response["name"])
